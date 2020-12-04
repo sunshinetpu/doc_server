@@ -1,28 +1,30 @@
 import json
-import mysql
+import os
+
 from flask import send_file
 from mysql import connector
 
-from src.util import get_current_time, get_common_response, RESPONSE_CODE, MSG, DATA, get_time_by_format, \
+from util import get_current_time, get_common_response, RESPONSE_CODE, MSG, DATA, get_time_by_format, \
     DATE_TIME_SHORT_FORMAT
 
+USER = os.environ['DATABASE_USER']
+PASSWORD = os.environ['DATABASE_PASSWORD']
 
 def get_db_connector():
-    print("create db connector ")
     cvdb = connector.connect(
         host="localhost",
-        user="root",
-        password="minhtv",
+        user=USER,
+        password=PASSWORD,
         database="congvan_db"
     )
     return cvdb
 
+
 def init_database():
-    print("init database in module")
     mydb = connector.connect(
         host="localhost",
-        user="root",
-        password="minhtv"
+        user=USER,
+        password=PASSWORD
     )
     mydb_cusor = mydb.cursor()
     mydb_cusor.execute("CREATE DATABASE IF NOT EXISTS congvan_db")
@@ -44,17 +46,17 @@ def init_database():
         cv_cursor.execute(insert_format, ("Quan trong",))
         cv_cursor.execute(insert_format, ("Khan",))
 
-    cv_cursor.execute(check_table_script, ("doc_states", ))
+    cv_cursor.execute(check_table_script, ("doc_states",))
     result2 = cv_cursor.fetchone()
     if not result2:
         create_doc_states_table_script = "CREATE TABLE IF NOT EXISTS doc_states(id int auto_increment primary key, content nvarchar(50) not null)"
         cv_cursor.execute(create_doc_states_table_script)
 
         insert_state_format = "INSERT INTO doc_states (content) VALUES (%s)"
-        cv_cursor.execute(insert_state_format, ("Hoan thanh", ))
-        cv_cursor.execute(insert_state_format, ("Chua hoan thanh", ))
-        cv_cursor.execute(insert_state_format, ("Gia han", ))
-        cv_cursor.execute(insert_state_format, ("Khong hoan thanh", ))
+        cv_cursor.execute(insert_state_format, ("Hoan thanh",))
+        cv_cursor.execute(insert_state_format, ("Chua hoan thanh",))
+        cv_cursor.execute(insert_state_format, ("Gia han",))
+        cv_cursor.execute(insert_state_format, ("Khong hoan thanh",))
 
     create_doc_states_table_script = "CREATE TABLE IF NOT EXISTS doc_states(id int auto_increment primary key, content nvarchar(50) not null)"
     cv_cursor.execute(create_doc_states_table_script)
@@ -69,6 +71,7 @@ def init_database():
     cv_cursor.execute(create_cc_table_script)
 
     cv_cursor.close()
+
 
 def create_user(name, user_name, password, title):
     print("creating " + name)
@@ -93,6 +96,7 @@ def create_user(name, user_name, password, title):
         db.close()
     return response
 
+
 def edit_user(name, user_name, password, title):
     response = get_common_response()
     db = get_db_connector()
@@ -115,6 +119,7 @@ def edit_user(name, user_name, password, title):
         db.close()
 
     return response
+
 
 def remove_user(user_name):
     print("remove user " + user_name)
@@ -140,6 +145,7 @@ def remove_user(user_name):
         db.close()
     return response
 
+
 def add_doc(from_user, to_user, cc_list, doc_id, doc_name, level, state, start_date, end_date, final_file_name):
     print("add doc from " + from_user)
     response = get_common_response()
@@ -156,7 +162,7 @@ def add_doc(from_user, to_user, cc_list, doc_id, doc_name, level, state, start_d
             response[MSG] = "From user not found"
             return response
 
-        db_cursor.execute(script_get_user_id, (to_user, ))
+        db_cursor.execute(script_get_user_id, (to_user,))
         assignee_object = db_cursor.fetchone()
         if not assignee_object:
             response[RESPONSE_CODE] = 400
@@ -172,7 +178,8 @@ def add_doc(from_user, to_user, cc_list, doc_id, doc_name, level, state, start_d
 
         assignee_id = assignee_object[0]
         insert_to_details_script = "INSERT INTO doc_process_details (document_id, assignee, start_date, end_date, create_date) VALUES (%s, %s, %s, %s, %s)"
-        insert_details_val = (document_id, assignee_id, get_time_by_format(start_date), get_time_by_format(end_date), get_current_time())
+        insert_details_val = (
+            document_id, assignee_id, get_time_by_format(start_date), get_time_by_format(end_date), get_current_time())
         db_cursor.execute(insert_to_details_script, insert_details_val)
 
         # add new row to cc table
@@ -200,6 +207,7 @@ def add_doc(from_user, to_user, cc_list, doc_id, doc_name, level, state, start_d
         db.close()
     return response
 
+
 def get_all_doc(user_name):
     print("get all doc from " + user_name)
     response = get_common_response()
@@ -217,7 +225,7 @@ def get_all_doc(user_name):
 
         user_id = user_object[0]
         script_get_all_docs = "SELECT * FROM documents WHERE creator = %s"
-        db_cursor.execute(script_get_all_docs, (user_id, ))
+        db_cursor.execute(script_get_all_docs, (user_id,))
         list_docs = db_cursor.fetchall()
         final_result['count'] = len(list_docs)
         item_list = []
@@ -233,7 +241,7 @@ def get_all_doc(user_name):
 
             # details of document
             get_details_script = "SELECT assignee, start_date, end_date FROM doc_process_details WHERE document_id = %s"
-            db_cursor.execute(get_details_script, (doc[0], ))
+            db_cursor.execute(get_details_script, (doc[0],))
             list_details = db_cursor.fetchall()
             details_item = []
             for process_detail in list_details:
@@ -241,7 +249,7 @@ def get_all_doc(user_name):
                 detail_info['start_date'] = process_detail[1].strftime(DATE_TIME_SHORT_FORMAT)
                 detail_info['end_date'] = process_detail[2].strftime(DATE_TIME_SHORT_FORMAT)
                 get_user_name_script = "SELECT fullname FROM users where id = %s"
-                db_cursor.execute(get_user_name_script, (process_detail[0], ))
+                db_cursor.execute(get_user_name_script, (process_detail[0],))
                 detail_info['assignee_name'] = db_cursor.fetchone()[0]
                 details_item.append(detail_info)
             doc_info['process_details'] = details_item
@@ -261,6 +269,7 @@ def get_all_doc(user_name):
         db.close()
 
     return response
+
 
 def get_doc_states():
     db = get_db_connector()
@@ -283,6 +292,7 @@ def get_doc_states():
 
     return json.dumps(list_states)
 
+
 def get_user_info(user_id):
     db = get_db_connector()
     db_cursor = db.cursor()
@@ -290,7 +300,7 @@ def get_user_info(user_id):
     user_info = {}
     try:
         sql = "SELECT id, fullname, username, title, state FROM users WHERE id = %s"
-        db_cursor.execute(sql, (user_id, ))
+        db_cursor.execute(sql, (user_id,))
         user_object = db_cursor.fetchone()
         if user_object:
             user_info['id'] = user_object[0]
@@ -314,6 +324,7 @@ def get_user_info(user_id):
         response[DATA] = user_info
     return json.dumps(response)
 
+
 def get_doc_levels():
     db = get_db_connector()
     db_cursor = db.cursor()
@@ -335,13 +346,14 @@ def get_doc_levels():
 
     return json.dumps(list_levels)
 
+
 def get_doc_file(doc_db_id):
     response = get_common_response()
     db = get_db_connector()
     db_cursor = db.cursor()
     try:
         sql = "SELECT location FROM documents WHERE id = %s"
-        db_cursor.execute(sql, (doc_db_id, ))
+        db_cursor.execute(sql, (doc_db_id,))
         doc_object = db_cursor.fetchone()
         if not doc_object:
             response[RESPONSE_CODE] = 400

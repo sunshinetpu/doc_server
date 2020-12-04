@@ -1,19 +1,14 @@
 FROM python:3.6
 
-ENV PYTHONUNBUFFERED 1
+RUN mkdir -p /home/user/doc_app
 
-RUN mkdir -p /usr/src/app
+COPY requirements.txt  /home/user/doc_app/requirements.txt
 
-# specifying the working dir inside the container
-WORKDIR /usr/src/app
+WORKDIR /home/user/doc_app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install -r requirements.txt
 
-# copy current dir's content to container's WORKDIR root i.e. all the contents of the web app
-# ADD . /usr/src/app
 COPY . .
 
-ENTRYPOINT [ "python" ]
-
-CMD [ "src/demo_service.py" ]
+ENTRYPOINT [ "python3" ]
+CMD [ "demo_service.py" ]

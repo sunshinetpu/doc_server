@@ -1,11 +1,11 @@
 import json
 
 from flask import Flask
-from src import database_helper
 from flask import request
 import os
 
-from src.util import get_common_response, RESPONSE_CODE, MSG
+import database_helper
+from util import get_common_response, RESPONSE_CODE, MSG
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(APP_ROOT, 'docs')
